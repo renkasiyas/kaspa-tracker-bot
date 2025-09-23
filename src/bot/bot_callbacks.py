@@ -6,6 +6,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes, ConversationHandler
 
 from ..clients.kaspa_api import KaspaAPI
@@ -122,6 +123,17 @@ class CallbackHandlers:
         elif data == "noop":
             pass  # Do nothing for placeholder buttons
 
+    async def safe_edit_message(self, query, text: str, **kwargs) -> bool:
+        """Safely edit a message, handling 'Message is not modified' errors"""
+        try:
+            await self.safe_edit_message(text, **kwargs)
+            return True
+        except BadRequest as e:
+            if "Message is not modified" in str(e):
+                # This is fine - the message already shows the correct content
+                return True
+            raise  # Re-raise other BadRequest errors
+
     async def show_main_menu(self, query) -> None:
         """Show main menu"""
         text = (
@@ -129,13 +141,14 @@ class CallbackHandlers:
             "Monitor your Kaspa addresses and get real-time transaction notifications.\n\n"
             "Choose an action:"
         )
-        await query.edit_message_text(
-            text, parse_mode="Markdown", reply_markup=self.ui.main_menu_keyboard()
+        await self.safe_edit_message(
+            query, text, parse_mode="Markdown", reply_markup=self.ui.main_menu_keyboard()
         )
 
     async def start_add_address(self, query, context: ContextTypes.DEFAULT_TYPE) -> int:
         """Start the add address conversation"""
-        await query.edit_message_text(
+        await self.safe_edit_message(
+            query,
             "➕ *Add New Address*\n\n"
             "Please send the Kaspa address you want to track.\n\n"
             "Example:\n`kaspa:qq258y97v6uc26jqhztw49v9xh6wa85fc8sd5zqxz9jmhkky4pnvvgc3z08eq`",
@@ -148,12 +161,13 @@ class CallbackHandlers:
     async def show_address_list(self, query, user_id: int, page: int = 0) -> None:
         """Show paginated address list"""
         # Show loading message first
-        await query.edit_message_text("🔄 Loading addresses...")
+        await self.safe_edit_message(query, "🔄 Loading addresses...")
 
         addresses = await self.db.get_user_addresses(user_id)
 
         if not addresses:
-            await query.edit_message_text(
+            await self.safe_edit_message(
+                query,
                 "📋 *Your Tracked Addresses*\n\n"
                 "You haven't added any addresses yet.\n"
                 "Click 'Add Address' to start tracking!",
@@ -196,8 +210,11 @@ class CallbackHandlers:
                 text += f"   📌 {label}\n"
             text += f"   💰 {balance:.8f} KAS\n\n"
 
-        await query.edit_message_text(
-            text, parse_mode="Markdown", reply_markup=self.ui.address_list_keyboard(addresses, page)
+        await self.safe_edit_message(
+            query,
+            text,
+            parse_mode="Markdown",
+            reply_markup=self.ui.address_list_keyboard(addresses, page),
         )
 
     async def show_address_detail(
@@ -205,7 +222,7 @@ class CallbackHandlers:
     ) -> None:
         """Show detailed address information"""
         # Show loading message first
-        await query.edit_message_text("🔄 Loading address details...")
+        await self.safe_edit_message(query, "🔄 Loading address details...")
 
         # Store current address in context for subsequent actions
         if context:
@@ -215,7 +232,8 @@ class CallbackHandlers:
         addr_info = await self.db.get_address_info(user_id, address)
 
         if not addr_info:
-            await query.edit_message_text(
+            await self.safe_edit_message(
+                query,
                 "❌ Address not found in your tracked list.",
                 reply_markup=self.ui.back_button("menu_list"),
             )
@@ -241,7 +259,8 @@ class CallbackHandlers:
         # Format and show address details
         text = self.ui.format_address_info(addr_info)
 
-        await query.edit_message_text(
+        await self.safe_edit_message(
+            query,
             text,
             parse_mode="Markdown",
             reply_markup=self.ui.address_detail_keyboard(bool(addr_info.get("label"))),
@@ -249,7 +268,7 @@ class CallbackHandlers:
 
     async def check_balance(self, query, address: str) -> None:
         """Check and show current balance"""
-        await query.edit_message_text("🔄 Fetching balance...")
+        await self.safe_edit_message(query, "🔄 Fetching balance...")
 
         balance_data = await self.kaspa_api.get_balance(address)
 
@@ -262,13 +281,13 @@ class CallbackHandlers:
         else:
             text = "❌ Failed to fetch balance. Please try again."
 
-        await query.edit_message_text(
-            text, parse_mode="Markdown", reply_markup=self.ui.back_button("back_addr")
+        await self.safe_edit_message(
+            query, text, parse_mode="Markdown", reply_markup=self.ui.back_button("back_addr")
         )
 
     async def show_utxos(self, query, address: str) -> None:
         """Show UTXOs for address"""
-        await query.edit_message_text("🔄 Fetching UTXOs...")
+        await self.safe_edit_message(query, "🔄 Fetching UTXOs...")
 
         utxos = await self.kaspa_api.get_utxos(address)
 
@@ -286,13 +305,13 @@ class CallbackHandlers:
         else:
             text = "❌ No UTXOs found or failed to fetch."
 
-        await query.edit_message_text(
-            text, parse_mode="Markdown", reply_markup=self.ui.back_button("back_addr")
+        await self.safe_edit_message(
+            query, text, parse_mode="Markdown", reply_markup=self.ui.back_button("back_addr")
         )
 
     async def show_transactions(self, query, address: str) -> None:
         """Show recent transactions"""
-        await query.edit_message_text("🔄 Fetching transactions...")
+        await self.safe_edit_message(query, "🔄 Fetching transactions...")
 
         transactions = await self.kaspa_api.get_transactions(address, limit=10)
 
@@ -301,8 +320,8 @@ class CallbackHandlers:
         else:
             text = "❌ No transactions found or failed to fetch."
 
-        await query.edit_message_text(
-            text, parse_mode="Markdown", reply_markup=self.ui.back_button("back_addr")
+        await self.safe_edit_message(
+            query, text, parse_mode="Markdown", reply_markup=self.ui.back_button("back_addr")
         )
 
     async def confirm_remove(self, query, context: ContextTypes.DEFAULT_TYPE, address: str) -> None:
@@ -314,8 +333,8 @@ class CallbackHandlers:
             f"This action cannot be undone."
         )
 
-        await query.edit_message_text(
-            text, parse_mode="Markdown", reply_markup=self.ui.confirm_remove_keyboard()
+        await self.safe_edit_message(
+            query, text, parse_mode="Markdown", reply_markup=self.ui.confirm_remove_keyboard()
         )
 
     async def remove_address(self, query, user_id: int, address: str) -> None:
@@ -326,13 +345,13 @@ class CallbackHandlers:
         # Remove from database
         await self.db.remove_address(user_id, address)
 
-        await query.edit_message_text(
+        await self.safe_edit_message(
             "✅ Address removed successfully!", reply_markup=self.ui.back_button("menu_list")
         )
 
     async def refresh_all_addresses(self, query, user_id: int) -> None:
         """Refresh all addresses"""
-        await query.edit_message_text("🔄 Fetching fresh balances...")
+        await self.safe_edit_message(query, "🔄 Fetching fresh balances...")
 
         addresses = await self.db.get_user_addresses(user_id)
 
@@ -346,7 +365,7 @@ class CallbackHandlers:
             except Exception:
                 pass
 
-        await query.edit_message_text(
+        await self.safe_edit_message(
             f"✅ Successfully fetched {successful}/{len(addresses)} addresses!",
             reply_markup=self.ui.back_button("menu_list"),
         )
@@ -357,7 +376,7 @@ class CallbackHandlers:
         """Start label edit conversation"""
         context.user_data["editing_label_address"] = address
 
-        await query.edit_message_text(
+        await self.safe_edit_message(
             f"📝 *Edit Label*\n\n"
             f"Address: `{address[:20]}...`\n\n"
             f"Please send the new label for this address:",
