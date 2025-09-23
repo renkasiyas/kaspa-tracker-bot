@@ -126,7 +126,7 @@ class CallbackHandlers:
     async def safe_edit_message(self, query, text: str, **kwargs) -> bool:
         """Safely edit a message, handling 'Message is not modified' errors"""
         try:
-            await self.safe_edit_message(text, **kwargs)
+            await query.edit_message_text(text, **kwargs)
             return True
         except BadRequest as e:
             if "Message is not modified" in str(e):
@@ -346,7 +346,7 @@ class CallbackHandlers:
         await self.db.remove_address(user_id, address)
 
         await self.safe_edit_message(
-            "✅ Address removed successfully!", reply_markup=self.ui.back_button("menu_list")
+            query, "✅ Address removed successfully!", reply_markup=self.ui.back_button("menu_list")
         )
 
     async def refresh_all_addresses(self, query, user_id: int) -> None:
@@ -366,6 +366,7 @@ class CallbackHandlers:
                 pass
 
         await self.safe_edit_message(
+            query,
             f"✅ Successfully fetched {successful}/{len(addresses)} addresses!",
             reply_markup=self.ui.back_button("menu_list"),
         )
@@ -377,6 +378,7 @@ class CallbackHandlers:
         context.user_data["editing_label_address"] = address
 
         await self.safe_edit_message(
+            query,
             f"📝 *Edit Label*\n\n"
             f"Address: `{address[:20]}...`\n\n"
             f"Please send the new label for this address:",
