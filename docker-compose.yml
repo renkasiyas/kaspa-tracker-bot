@@ -1,0 +1,22 @@
+# ABOUTME: Docker Compose configuration for Kaspa Tracker Bot
+# ABOUTME: Manages container deployment with environment variables and volumes
+
+version: '3.8'
+
+services:
+  kaspa-tracker:
+    build: .
+    container_name: kaspa-tracker-bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - DATABASE_PATH=/app/data/kaspa_tracker.db
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
