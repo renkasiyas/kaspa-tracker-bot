@@ -6,28 +6,28 @@ A Telegram bot for tracking Kaspa blockchain addresses with real-time notificati
 
 ## Features
 
-- =Ê **Real-time Balance Tracking** - Monitor multiple Kaspa addresses simultaneously
+- =ï¿½ **Real-time Balance Tracking** - Monitor multiple Kaspa addresses simultaneously
 - = **Instant Notifications** - Get alerts for incoming and outgoing transactions
-- <÷ **Custom Labels** - Organize your addresses with descriptive names
-- =È **Transaction History** - View recent transactions for any tracked address
-- <¯ **Interactive UI** - Easy-to-use button interface, no commands to memorize
+- <ï¿½ **Custom Labels** - Organize your addresses with descriptive names
+- =ï¿½ **Transaction History** - View recent transactions for any tracked address
+- <ï¿½ **Interactive UI** - Easy-to-use button interface, no commands to memorize
 
 ## Getting Started
 
 1. Start a chat with [@kaspa_tracker_bot](https://t.me/kaspa_tracker_bot)
 2. Send `/start` to begin
-3. Click "• Add Address" to track your first Kaspa address
+3. Click "ï¿½ Add Address" to track your first Kaspa address
 4. Receive real-time notifications when transactions occur
 
 ## How to Use
 
 ### Adding an Address
-- Click "• Add Address" from the main menu
+- Click "ï¿½ Add Address" from the main menu
 - Send your Kaspa address (starts with `kaspa:`)
 - Optionally add a label to identify the address
 
 ### Managing Addresses
-- Click "=Ë My Addresses" to view all tracked addresses
+- Click "=ï¿½ My Addresses" to view all tracked addresses
 - Select any address to:
   - View current balance
   - See recent transactions
@@ -57,7 +57,7 @@ cd kaspa-tracker
 
 2. Create `.env` file:
 ```bash
-TELEGRAM_TOKEN=your_bot_token_here
+TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
 3. Run with Docker Compose:
@@ -81,7 +81,7 @@ uv sync
 
 3. Set your bot token:
 ```bash
-export TELEGRAM_TOKEN=your_bot_token_here
+export TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```
 
 4. Run the bot:

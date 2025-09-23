@@ -9,7 +9,7 @@ services:
     container_name: kaspa-tracker-bot
     restart: unless-stopped
     environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - DATABASE_PATH=/app/data/kaspa_tracker.db
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
