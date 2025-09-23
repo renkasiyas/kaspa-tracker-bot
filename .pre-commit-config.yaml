@@ -1,0 +1,18 @@
+# ABOUTME: Pre-commit configuration for code formatting with black and isort
+# ABOUTME: Ensures consistent code style across the project
+
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.12
+        args: [--line-length=100]
+        exclude: ^src/protos/.*\.py$
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+        exclude: ^src/protos/.*\.py$
