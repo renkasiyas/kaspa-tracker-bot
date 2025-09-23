@@ -13,10 +13,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml ./
 
 # Install uv and dependencies
 RUN pip install --no-cache-dir uv && \
+    uv lock && \
     uv pip install --system --no-cache -r pyproject.toml
 
 # Stage 2: Runtime
