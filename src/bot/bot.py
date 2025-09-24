@@ -23,6 +23,7 @@ import config
 from config import (
     ADMIN_IDS,
     BOT_TOKEN,
+    DATABASE_PATH,
     LOG_LEVEL,
     MAX_ADDRESSES_PER_USER,
     MIN_TRANSACTION_AMOUNT,
@@ -44,7 +45,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Global instances
-db = Database()
+db = Database(DATABASE_PATH)
 # Architecture: REST API for data fetching, gRPC for real-time notifications
 kaspa_client = KaspaGrpcClient()  # For real-time transaction notifications via gRPC
 kaspa_api = KaspaAPI()  # For balance, UTXOs, and transaction history via REST
