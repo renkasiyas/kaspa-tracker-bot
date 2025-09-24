@@ -17,12 +17,6 @@ services:
     volumes:
       # Mount data directory with explicit permissions
       - ./data:/app/data:rw
-    # Ensure data directory exists before starting
-    entrypoint: >
-      sh -c "
-      mkdir -p /app/data || true &&
-      python run.py
-      "
     logging:
       driver: "json-file"
       options:

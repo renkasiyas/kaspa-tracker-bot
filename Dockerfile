@@ -25,10 +25,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Create non-root user for security
+# Create non-root user for security and data directory
 RUN useradd -m -u 1000 botuser && \
     mkdir -p /app/data && \
-    chown -R botuser:botuser /app
+    chown -R botuser:botuser /app && \
+    chmod 755 /app/data
 
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
