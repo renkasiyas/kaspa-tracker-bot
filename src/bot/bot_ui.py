@@ -7,6 +7,9 @@ from typing import Any, Dict, List, Optional
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+# Import formatting functions
+from .formatting import format_kas_amount, format_kas_amount_from_float
+
 logger = logging.getLogger(__name__)
 
 
@@ -151,7 +154,7 @@ class BotUI:
         if label:
             text += f"📌 Label: {label}\n"
         text += f"🏠 Address:\n`{address}`\n\n"
-        text += f"💰 Balance: {balance:.8f} KAS\n"
+        text += f"💰 Balance: {format_kas_amount_from_float(balance)}\n"
         text += f"📦 UTXOs: {utxo_count}\n"
 
         return text
@@ -188,7 +191,7 @@ class BotUI:
                 emoji = "🔄"
                 sign = ""
 
-            text += f"{i}. {emoji} {sign}{amount/100_000_000:.8f} KAS\n"
+            text += f"{i}. {emoji} {sign}{format_kas_amount(amount)}\n"
             text += f"   `{tx_id[:16]}...`\n"
             text += f"   {timestamp_str}\n\n"
 

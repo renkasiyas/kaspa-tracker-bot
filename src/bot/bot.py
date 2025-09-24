@@ -34,6 +34,7 @@ from ..db.database import Database
 from ..db.migrations import Migrator
 from .bot_callbacks import WAITING_ADDRESS, WAITING_LABEL, CallbackHandlers
 from .bot_ui import BotUI
+from .formatting import format_kas_amount, format_kas_amount_from_float
 
 # Set up logging
 logging.basicConfig(
@@ -59,17 +60,6 @@ def validate_kaspa_address(address: str) -> bool:
         return kaspa.Address.validate(address)
     except Exception:
         return False
-
-
-def format_kas_amount(sompi: int) -> str:
-    """Format sompi amount to KAS with proper decimal places"""
-    kas = sompi / 100_000_000
-    if kas >= 1000:
-        return f"{kas:,.2f} KAS"
-    elif kas >= 1:
-        return f"{kas:.4f} KAS"
-    else:
-        return f"{kas:.8f} KAS"
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

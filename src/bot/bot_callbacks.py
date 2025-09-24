@@ -9,6 +9,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes, ConversationHandler
 
+from ..bot.formatting import format_kas_amount, format_kas_amount_from_float
 from ..clients.kaspa_api import KaspaAPI
 from ..clients.kaspa_grpc import KaspaGrpcClient
 from ..db.database import Database
@@ -215,7 +216,7 @@ class CallbackHandlers:
             text += f"*{i}.* `{addr_short}`\n"
             if label:
                 text += f"   📌 {label}\n"
-            text += f"   💰 {balance:.8f} KAS\n\n"
+            text += f"   💰 {format_kas_amount_from_float(balance)}\n\n"
 
         await self.safe_edit_message(
             query,
@@ -283,7 +284,7 @@ class CallbackHandlers:
             text = (
                 f"💰 *Balance Check*\n\n"
                 f"Address: `{address[:20]}...`\n"
-                f"Balance: {balance_data['balance_kas']:.8f} KAS"
+                f"Balance: {format_kas_amount_from_float(balance_data['balance_kas'])}"
             )
         else:
             text = "❌ Failed to fetch balance. Please try again."
@@ -305,7 +306,7 @@ class CallbackHandlers:
             for i, utxo in enumerate(utxos[:10], 1):
                 amount = utxo.get("amount_kas", 0)
                 tx_id = utxo.get("tx_id", "")[:16]
-                text += f"{i}. {amount:.8f} KAS\n   `{tx_id}...`\n\n"
+                text += f"{i}. {format_kas_amount_from_float(amount)}\n   `{tx_id}...`\n\n"
 
             if len(utxos) > 10:
                 text += f"... and {len(utxos) - 10} more"
