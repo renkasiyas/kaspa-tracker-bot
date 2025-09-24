@@ -11,6 +11,7 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - DATABASE_PATH=/app/data/kaspa_tracker.db
+      - ADMIN_IDS=${ADMIN_IDS}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     volumes:

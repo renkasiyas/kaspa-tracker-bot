@@ -19,6 +19,7 @@ from telegram.ext import (
     filters,
 )
 
+import config
 from config import (
     ADMIN_IDS,
     BOT_TOKEN,
@@ -60,6 +61,58 @@ def validate_kaspa_address(address: str) -> bool:
         return kaspa.Address.validate(address)
     except Exception:
         return False
+
+
+async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show database statistics (admin only)"""
+    user_id = update.effective_user.id
+
+    logger.info(f"Stats command received from user {user_id}, ADMIN_IDS: {config.ADMIN_IDS}")
+
+    # Check if user is admin - no response if not
+    if user_id not in config.ADMIN_IDS:
+        logger.info(f"User {user_id} is not admin, ignoring /stats command")
+        return
+
+    # Get stats from database
+    stats = await db.get_stats()
+
+    # Format the statistics message
+    message_lines = [
+        "📊 *Bot Statistics*",
+        "",
+        f"👥 *Users:* {stats['total_users']}",
+        f"📍 *Unique Addresses:* {stats['total_unique_addresses']}",
+        f"📈 *Avg Addresses/User:* {stats['avg_addresses_per_user']}",
+        f"🕐 *New Addresses (24h):* {stats['recent_addresses_added']}",
+        "",
+        f"🏷️ *Label Usage:* {stats['label_usage']['labeled']}/{stats['label_usage']['total']} "
+        f"({stats['label_usage']['percentage']}%)",
+    ]
+
+    # Add most followed address if exists
+    if stats["most_followed_address"]:
+        addr = stats["most_followed_address"]
+        short_addr = f"{addr['address'][:10]}...{addr['address'][-10:]}"
+        message_lines.extend(
+            [
+                "",
+                f"🔥 *Most Followed Address:*",
+                f"`{short_addr}`",
+                f"Followers: {addr['followers']}",
+            ]
+        )
+        if addr["labels"]:
+            message_lines.append(f"Labels: {addr['labels'][:100]}")
+
+    # Add top users
+    if stats["top_users"]:
+        message_lines.extend(["", "👑 *Top Users:*"])
+        for user in stats["top_users"][:3]:
+            name = user["first_name"] or user["username"] or f"User {user['user_id']}"
+            message_lines.append(f"• {name}: {user['address_count']} addresses")
+
+    await update.message.reply_text("\n".join(message_lines), parse_mode="Markdown")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -865,6 +918,7 @@ def main() -> None:
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("list", list_addresses))
     application.add_handler(CommandHandler("check", check_address))
+    application.add_handler(CommandHandler("stats", admin_stats))
     application.add_handler(CommandHandler("remove", remove_address))
     application.add_handler(CommandHandler("dbstatus", db_status))
 

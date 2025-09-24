@@ -260,3 +260,93 @@ class Database:
 
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
+
+    async def get_stats(self) -> Dict[str, Any]:
+        """Get database statistics for admin panel"""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+
+            # Total users
+            cursor = await db.execute("SELECT COUNT(DISTINCT user_id) as count FROM users")
+            total_users = (await cursor.fetchone())["count"]
+
+            # Total unique addresses
+            cursor = await db.execute("SELECT COUNT(DISTINCT address) as count FROM addresses")
+            total_addresses = (await cursor.fetchone())["count"]
+
+            # Most followed address
+            cursor = await db.execute(
+                """
+                SELECT address, COUNT(*) as followers, GROUP_CONCAT(label, ', ') as labels
+                FROM addresses
+                GROUP BY address
+                ORDER BY followers DESC
+                LIMIT 1
+            """
+            )
+            most_followed = await cursor.fetchone()
+
+            # Average addresses per user
+            cursor = await db.execute(
+                """
+                SELECT AVG(addr_count) as avg_addresses
+                FROM (
+                    SELECT user_id, COUNT(*) as addr_count
+                    FROM addresses
+                    GROUP BY user_id
+                )
+            """
+            )
+            avg_addresses = (await cursor.fetchone())["avg_addresses"] or 0
+
+            # Users with most addresses
+            cursor = await db.execute(
+                """
+                SELECT u.user_id, u.username, u.first_name, COUNT(a.address) as address_count
+                FROM users u
+                LEFT JOIN addresses a ON u.user_id = a.user_id
+                GROUP BY u.user_id
+                ORDER BY address_count DESC
+                LIMIT 5
+            """
+            )
+            top_users = await cursor.fetchall()
+
+            # Recent activity (last 24 hours)
+            cursor = await db.execute(
+                """
+                SELECT COUNT(*) as recent_addresses
+                FROM addresses
+                WHERE added_at > datetime('now', '-1 day')
+            """
+            )
+            recent_addresses = (await cursor.fetchone())["recent_addresses"]
+
+            # Label usage
+            cursor = await db.execute(
+                """
+                SELECT COUNT(*) as labeled,
+                       (SELECT COUNT(*) FROM addresses) as total
+                FROM addresses
+                WHERE label IS NOT NULL AND label != ''
+            """
+            )
+            label_stats = await cursor.fetchone()
+
+            return {
+                "total_users": total_users,
+                "total_unique_addresses": total_addresses,
+                "most_followed_address": dict(most_followed) if most_followed else None,
+                "avg_addresses_per_user": round(avg_addresses, 2) if avg_addresses else 0,
+                "top_users": [dict(row) for row in top_users],
+                "recent_addresses_added": recent_addresses,
+                "label_usage": {
+                    "labeled": label_stats["labeled"],
+                    "total": label_stats["total"],
+                    "percentage": (
+                        round((label_stats["labeled"] / label_stats["total"] * 100), 1)
+                        if label_stats["total"] > 0
+                        else 0
+                    ),
+                },
+            }
