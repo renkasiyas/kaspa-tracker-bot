@@ -21,8 +21,9 @@ class Migration:
 MIGRATIONS: List[Migration] = [
     Migration(
         version=1,
-        description="Initial schema",
+        description="Initial schema - clean deployment",
         up_sql="""
+            -- Users table - stores Telegram user information
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 username TEXT,
@@ -30,6 +31,7 @@ MIGRATIONS: List[Migration] = [
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            -- Addresses table - stores user's tracked Kaspa addresses
             CREATE TABLE IF NOT EXISTS addresses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -39,10 +41,11 @@ MIGRATIONS: List[Migration] = [
                 last_checked TIMESTAMP,
                 last_balance TEXT,
                 last_utxo_count INTEGER DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES users (user_id),
+                FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
                 UNIQUE(user_id, address)
             );
 
+            -- Transactions table - logs notifications sent to users
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -52,40 +55,15 @@ MIGRATIONS: List[Migration] = [
                 utxo_data TEXT,
                 notified BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (user_id)
+                FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
             );
 
+            -- Indexes for performance
             CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
             CREATE INDEX IF NOT EXISTS idx_addresses_address ON addresses(address);
             CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
             CREATE INDEX IF NOT EXISTS idx_transactions_address ON transactions(address);
-        """,
-    ),
-    Migration(
-        version=2,
-        description="Add notification preferences",
-        up_sql="""
-            ALTER TABLE users ADD COLUMN notify_incoming BOOLEAN DEFAULT TRUE;
-            ALTER TABLE users ADD COLUMN notify_outgoing BOOLEAN DEFAULT TRUE;
-            ALTER TABLE users ADD COLUMN min_notify_amount TEXT DEFAULT '0';
-        """,
-    ),
-    Migration(
-        version=3,
-        description="Add address statistics",
-        up_sql="""
-            CREATE TABLE IF NOT EXISTS address_stats (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                address TEXT NOT NULL,
-                total_received TEXT DEFAULT '0',
-                total_sent TEXT DEFAULT '0',
-                tx_count INTEGER DEFAULT 0,
-                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_activity TIMESTAMP,
-                UNIQUE(address)
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_address_stats_address ON address_stats(address);
+            CREATE INDEX IF NOT EXISTS idx_transactions_notified ON transactions(notified);
         """,
     ),
 ]

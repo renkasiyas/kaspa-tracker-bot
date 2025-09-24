@@ -549,7 +549,13 @@ async def handle_kaspa_event(event_type: str, address: Optional[str], data: Dict
     global processed_transactions
     global transaction_retry_queue
 
-    if address:
+    import random
+
+    # Only log new_block events 1% of the time to reduce spam
+    if event_type == "new_block":
+        if random.random() <= 0.01:
+            logger.info(f"Received Kaspa event: {event_type} with data: {data}")
+    elif address:
         logger.info(
             f"Received Kaspa event: {event_type} for address {address[:20]}... with data: {data}"
         )

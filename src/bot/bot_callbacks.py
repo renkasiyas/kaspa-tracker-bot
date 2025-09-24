@@ -29,41 +29,26 @@ class CallbackHandlers:
         self.kaspa_client = kaspa_client
         self.ui = BotUI()
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Main callback query handler"""
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        """Main callback query handler - returns conversation state when applicable"""
         query = update.callback_query
         await query.answer()
 
         data = query.data
         user_id = query.from_user.id
 
-        # Delete all messages after this one to clean up the chat
-        try:
-            current_msg_id = query.message.message_id
-            chat_id = query.message.chat_id
-
-            # Store the last message ID we know about to avoid unnecessary deletion attempts
-            last_msg_id = context.user_data.get("last_bot_msg_id", current_msg_id + 10)
-
-            # Try to delete messages after this one (up to the last known message)
-            for i in range(1, min(last_msg_id - current_msg_id + 1, 20)):
-                try:
-                    await context.bot.delete_message(chat_id=chat_id, message_id=current_msg_id + i)
-                    await asyncio.sleep(0.05)  # Small delay to avoid rate limiting
-                except Exception:
-                    # Message doesn't exist or can't be deleted, silently continue
-                    break  # If one fails, likely the rest don't exist either
-        except Exception:
-            # Silently ignore any deletion errors
-            pass
+        # Disabled message deletion to avoid 400 errors
+        # Messages are managed by conversation handler instead
 
         # Main menu handlers
         if data == "menu_main":
             await self.show_main_menu(query)
+            return ConversationHandler.END
         elif data == "menu_add":
-            await self.start_add_address(query, context)
+            return await self.start_add_address(query, context)
         elif data == "menu_list":
             await self.show_address_list(query, user_id)
+            return ConversationHandler.END
 
         # Address view handlers
         elif data.startswith("addr_v_"):
@@ -88,7 +73,7 @@ class CallbackHandlers:
         elif data.startswith("addr_lbl_"):
             address = context.user_data.get("current_address")
             if address:
-                await self.start_edit_label(query, context, address)
+                return await self.start_edit_label(query, context, address)
         elif data.startswith("addr_rm_"):
             address = context.user_data.get("current_address")
             if address:
@@ -123,16 +108,40 @@ class CallbackHandlers:
         elif data == "noop":
             pass  # Do nothing for placeholder buttons
 
+        # Default return for callbacks that don't start a conversation
+        return ConversationHandler.END
+
     async def safe_edit_message(self, query, text: str, **kwargs) -> bool:
-        """Safely edit a message, handling 'Message is not modified' errors"""
+        """Safely edit a message, handling common Telegram API errors"""
         try:
             await query.edit_message_text(text, **kwargs)
             return True
         except BadRequest as e:
-            if "Message is not modified" in str(e):
+            error_msg = str(e)
+            if "Message is not modified" in error_msg:
                 # This is fine - the message already shows the correct content
+                logger.debug("Message content unchanged, skipping edit")
                 return True
-            raise  # Re-raise other BadRequest errors
+            elif "Query is too old" in error_msg:
+                # Callback query expired - send a new message instead
+                logger.warning("Callback query expired, sending new message")
+                try:
+                    await query.message.reply_text(text, **kwargs)
+                    return True
+                except Exception:
+                    return False
+            elif "Message to edit not found" in error_msg:
+                # Message was deleted - send a new message
+                logger.warning("Message not found, sending new message")
+                try:
+                    await query.message.reply_text(text, **kwargs)
+                    return True
+                except Exception:
+                    return False
+            else:
+                # Log unexpected errors but don't crash
+                logger.error(f"Failed to edit message: {error_msg}")
+                return False
 
     async def show_main_menu(self, query) -> None:
         """Show main menu"""
@@ -149,9 +158,7 @@ class CallbackHandlers:
         """Start the add address conversation"""
         await self.safe_edit_message(
             query,
-            "➕ *Add New Address*\n\n"
-            "Please send the Kaspa address you want to track.\n\n"
-            "Example:\n`kaspa:qq258y97v6uc26jqhztw49v9xh6wa85fc8sd5zqxz9jmhkky4pnvvgc3z08eq`",
+            "➕ *Add New Address*\n\n" "Please send the Kaspa address you want to track.",
             parse_mode="Markdown",
             reply_markup=self.ui.cancel_keyboard(),
         )
