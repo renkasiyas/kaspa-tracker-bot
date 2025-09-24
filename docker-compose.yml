@@ -15,10 +15,14 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
-      # Mount data directory with explicit permissions
-      - ./data:/app/data:rw
+      # Use named volume for database persistence
+      - kaspa_data:/app/data
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  kaspa_data:
+    driver: local

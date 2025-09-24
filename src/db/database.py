@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self, db_path: str = "kaspa_tracker.db"):
+        # Ensure parent directory exists
+        import os
+
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+            except Exception as e:
+                logger.warning(f"Could not create directory {db_dir}: {e}")
         self.db_path = db_path
 
     async def init_db(self):
