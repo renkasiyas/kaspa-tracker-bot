@@ -15,7 +15,15 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
-      - ./data:/app/data
+      # Mount data directory with explicit permissions
+      - ./data:/app/data:rw
+    # Ensure data directory exists and is writable before starting
+    entrypoint: >
+      sh -c "
+      mkdir -p /app/data &&
+      chown botuser:botuser /app/data &&
+      python run.py
+      "
     logging:
       driver: "json-file"
       options:
